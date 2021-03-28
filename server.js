@@ -21,8 +21,14 @@ function handleLocationRequest(req, res) {
   res.send(locationsData);
 }
 
-function handleWeatherRequest() {
-  
+function handleWeatherRequest(req, res) {
+  const weatherRawData = require('./data/weather.json');
+  const weatherData = [];
+
+  weatherRawData.data.forEach(weather => {
+    weatherData.push(new Weather(weather));
+  });
+  res.send(weatherData);
 }
 
 
@@ -35,6 +41,12 @@ function Location(data) {
   this.longitude = data.lon;
 }
 
+function Weather(data) {
+  this.forecast = data.weather.description;
+  this.time = data.valid_date;
+}
+
+//////
 app.use('*', (req, res) => {
   res.send('Hey there!');
 });
