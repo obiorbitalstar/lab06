@@ -24,13 +24,15 @@ app.get('/weather', handleWeatherRequest);
 function handleLocationRequest(req, res) {
   const searchQuery = req.query.city;
 
-  if (searchQuery === 'lynnwood') {
-    const locationsRawData = require('./data/location.json');
-    const locationsData = new Location(locationsRawData[0]);
+  const locationsRawData = require('./data/location.json');
+  const locationsData = new Location(locationsRawData[0]);
+  if (searchQuery === locationsData.search_query) {
     res.send(locationsData);
   } else {
     res.send(error);
   }
+
+
 }
 
 function handleWeatherRequest(req, res) {
