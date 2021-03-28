@@ -21,6 +21,10 @@ function handleLocationRequest(req, res) {
   res.send(locationsData);
 }
 
+function handleWeatherRequest() {
+  
+}
+
 
 
 // Constructors
