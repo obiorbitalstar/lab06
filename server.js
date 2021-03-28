@@ -34,7 +34,7 @@ function handleLocationRequest(req, res) {
 }
 
 function handleWeatherRequest(req, res) {
-  const searchQuery = req.query.city;
+  const searchQuery = req.query.search_query;
 
   if (searchQuery === 'lynnwood') {
     const weatherRawData = require('./data/weather.json');
