@@ -11,24 +11,42 @@ const PORT = process.env.PORT;
 const app = express();
 app.use(cors());
 
+// Global object
+const error = {
+  status: 500,
+  responseText: 'Sorry, something went wrong'
+};
+
 // Endpoints
 app.get('/location', handleLocationRequest);
 app.get('/weather', handleWeatherRequest);
 
 function handleLocationRequest(req, res) {
-  const locationsRawData = require('./data/location.json');
-  const locationsData = new Location(locationsRawData[0]);
-  res.send(locationsData);
+  const searchQuery = req.query.city;
+
+  if (searchQuery === 'lynnwood') {
+    const locationsRawData = require('./data/location.json');
+    const locationsData = new Location(locationsRawData[0]);
+    res.send(locationsData);
+  } else {
+    res.send(error);
+  }
 }
 
 function handleWeatherRequest(req, res) {
-  const weatherRawData = require('./data/weather.json');
-  const weatherData = [];
+  const searchQuery = req.query.city;
 
-  weatherRawData.data.forEach(weather => {
-    weatherData.push(new Weather(weather));
-  });
-  res.send(weatherData);
+  if (searchQuery === 'lynnwood') {
+    const weatherRawData = require('./data/weather.json');
+    const weatherData = [];
+
+    weatherRawData.data.forEach(weather => {
+      weatherData.push(new Weather(weather));
+    });
+    res.send(weatherData);
+  } else {
+    res.send(error);
+  }
 }
 
 
