@@ -66,6 +66,6 @@ function Weather(data) {
 
 //////
 app.use('*', (req, res) => {
-  res.send('Hey there!');
+  res.send('City Explorer!');
 });
 app.listen(PORT, () => console.log(`Listening to Port ${PORT}`));
