@@ -8,11 +8,14 @@ const superagent = require('superagent');
 const cors = require('cors');
 // const { response } = require('express');
 let searchQuery = '';
+let latitude = '';
+let longitude = '';
 
 // Setup
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const GEO_CODE_API_KEY = process.env.GEO_CODE_API_KEY;
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
+const PARKS_API_KEY = process.env.PARKS_API_KEY;
 const app = express();
 app.use(cors());
 
@@ -29,6 +32,7 @@ const error = {
 // Endpoints
 app.get('/location', handleLocationRequest);
 app.get('/weather', handleWeatherRequest);
+app.get('/parks', handleParksRequest);
 app.use('*', handleErrorNotFound);
 
 function handleLocationRequest(req, res) {
@@ -41,7 +45,7 @@ function handleLocationRequest(req, res) {
   //   key: GEO_CODE_API_KEY,
   //   city: searchQuery,
   //   format: 'json',
-  // } 
+  // }
   // then we pass it in the super agent superagent.get(url).query(queryParam).then(resData etc etc...
 
   if (!searchQuery) { //for empty request
@@ -51,6 +55,8 @@ function handleLocationRequest(req, res) {
   superagent.get(url).then(resData => {
     // console.log(resData.body[0]); //then we target with index if needed
     const location = new Location(searchQuery, resData.body[0]);
+    latitude = location.latitude;
+    longitude = location.longitude;
     // console.log(location);
     res.status(200).send(location);
   }).catch((error) => {
@@ -84,21 +90,24 @@ function handleLocationRequest(req, res) {
 
 function handleWeatherRequest(req, res) {
   // const searchQuery = req.query.search_query.city;
-  console.log(searchQuery);
-  const url = `https://api.weatherbit.io/v2.0/forecast/daily?city=${searchQuery}&key=${WEATHER_API_KEY}`;
+  // console.log(searchQuery);
+  // const url = `https://api.weatherbit.io/v2.0/forecast/daily?city=${searchQuery}&key=${WEATHER_API_KEY}`;
+  const url = `https://api.weatherbit.io/v2.0/forecast/daily?lat=${latitude}&lon=${longitude}&key=${WEATHER_API_KEY}`;
+
 
   if (!searchQuery) { //for empty request
     res.status(404).send('no search query was provided');
   }
 
   superagent.get(url).then(resData => {
-    console.log(resData.body); //then we target with index if needed
+    // console.log(resData.body); //then we target with index if needed
     const weatherData = [];
-    // res.send(resData.body[0]);
 
-    // const location = new Location(searchQuery, resData.body[0]);
-    // console.log(location);
-    res.status(200).send(resData.body);
+    resData.body.data.map(weather => {
+      weatherData.push(new Weather(weather));
+    });
+
+    res.status(200).send(weatherData);
   }).catch((error) => {
     console.log('error', error);
     res.status(500).send('something went wrong');
@@ -117,6 +126,29 @@ function handleWeatherRequest(req, res) {
   // }
 }
 
+function handleParksRequest(req, res) {
+  const url = `https://developer.nps.gov/api/v1/parks?limit=10&q=${searchQuery}&api_key=${PARKS_API_KEY}`;
+
+  if (!searchQuery) { //for empty request
+    res.status(404).send('no search query was provided');
+  }
+
+  superagent.get(url).then(resData => {
+    const parksData = [];
+
+    resData.body.data.map(park => {
+      parksData.push(new Park(park));
+    });
+    console.log(parksData);
+    res.status(200).send(parksData);
+  }).catch((error) => {
+    console.log('error', error);
+    res.status(500).send('something went wrong');
+  });
+
+
+}
+
 
 
 // Constructors
@@ -131,6 +163,14 @@ function Location(searchQuery, data) {
 function Weather(data) {
   this.forecast = data.weather.description;
   this.time = data.valid_date;
+}
+
+function Park(data) {
+  this.name = data.fullName;
+  this.address = `${data.addresses[0].line1}, ${data.addresses[0].city}, ${data.addresses[0].stateCode} ${data.addresses[0].postalCode}`;
+  this.fee = data.entranceFees[0].cost;
+  this.description = data.description;
+  this.url = data.url;
 }
 
 //////
