@@ -6,11 +6,13 @@ require('dotenv').config();
 const express = require('express');
 const superagent = require('superagent');
 const cors = require('cors');
-const { response } = require('express');
+// const { response } = require('express');
+let searchQuery = '';
 
 // Setup
 const PORT = process.env.PORT || 3000;
-const GEO_CODE_API_KEY= process.env.GEO_CODE_API_KEY;
+const GEO_CODE_API_KEY = process.env.GEO_CODE_API_KEY;
+const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const app = express();
 app.use(cors());
 
@@ -30,9 +32,9 @@ app.get('/weather', handleWeatherRequest);
 app.use('*', handleErrorNotFound);
 
 function handleLocationRequest(req, res) {
-  const searchQuery = req.query.city;
+  searchQuery = req.query.city;
 
-  const url = `url${GEO_CODE_API_KEY}&city=${searchQuery}url`;
+  const url = `https://us1.locationiq.com/v1/search.php?key=${GEO_CODE_API_KEY}&city=${searchQuery}&format=json`;
   //or
   // const url = 'url as string';
   // const queryParam = {
@@ -47,8 +49,9 @@ function handleLocationRequest(req, res) {
   }
 
   superagent.get(url).then(resData => {
-    console.log(resData.body[0]); //then we target with index if needed
-    const location = new Location(searchQuery, resData.body);
+    // console.log(resData.body[0]); //then we target with index if needed
+    const location = new Location(searchQuery, resData.body[0]);
+    // console.log(location);
     res.status(200).send(location);
   }).catch((error) => {
     console.log('error', error);
@@ -61,13 +64,13 @@ function handleLocationRequest(req, res) {
 
   // throw new Error('I didn't find any cities');
 
-  const locationsRawData = require('./data/location.json');
-  const locationsData = new Location(locationsRawData[0]);
-  if (searchQuery === locationsData.search_query) {
-    res.send(locationsData);
-  } else {
-    res.send(error);
-  }
+  // const locationsRawData = require('./data/location.json');
+  // const locationsData = new Location(locationsRawData[0]);
+  // if (searchQuery === locationsData.search_query) {
+  //   res.send(locationsData);
+  // } else {
+  //   res.send(error);
+  // }
 
   // try {
   //   put above code here
@@ -80,19 +83,38 @@ function handleLocationRequest(req, res) {
 }
 
 function handleWeatherRequest(req, res) {
-  const searchQuery = req.query.search_query;
+  // const searchQuery = req.query.search_query.city;
+  console.log(searchQuery);
+  const url = `https://api.weatherbit.io/v2.0/forecast/daily?city=${searchQuery}&key=${WEATHER_API_KEY}`;
 
-  if (searchQuery === 'lynnwood') {
-    const weatherRawData = require('./data/weather.json');
-    const weatherData = [];
-
-    weatherRawData.data.forEach(weather => {
-      weatherData.push(new Weather(weather));
-    });
-    res.send(weatherData);
-  } else {
-    res.send(error);
+  if (!searchQuery) { //for empty request
+    res.status(404).send('no search query was provided');
   }
+
+  superagent.get(url).then(resData => {
+    console.log(resData.body); //then we target with index if needed
+    const weatherData = [];
+    // res.send(resData.body[0]);
+
+    // const location = new Location(searchQuery, resData.body[0]);
+    // console.log(location);
+    res.status(200).send(resData.body);
+  }).catch((error) => {
+    console.log('error', error);
+    res.status(500).send('something went wrong');
+  });
+
+  // if (searchQuery === 'lynnwood') {
+  //   const weatherRawData = require('./data/weather.json');
+  //   const weatherData = [];
+
+  //   weatherRawData.data.map(weather => {
+  //     weatherData.push(new Weather(weather));
+  //   });
+  //   res.send(weatherData);
+  // } else {
+  //   res.send(error);
+  // }
 }
 
 
