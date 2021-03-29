@@ -17,12 +17,24 @@ const error = {
   responseText: 'Sorry, something went wrong'
 };
 
+// function ErrorNotFound(req, res) {
+//   res.status(500).send('Sorry, something went wrong');
+// }
+
+
+
 // Endpoints
 app.get('/location', handleLocationRequest);
 app.get('/weather', handleWeatherRequest);
 
 function handleLocationRequest(req, res) {
   const searchQuery = req.query.city;
+
+  // if (!searchQuery) {
+  //   res.status(500).send('Sorry, something went wrong');
+  // }
+
+  // throw new Error('I didn't find any cities');
 
   const locationsRawData = require('./data/location.json');
   const locationsData = new Location(locationsRawData[0]);
@@ -31,6 +43,13 @@ function handleLocationRequest(req, res) {
   } else {
     res.send(error);
   }
+
+  // try {
+  //   put above code here
+  // } catch (error) {
+  //   console.log(error);
+  //   res.status(500).send('error');
+  // }
 
 
 }
@@ -56,6 +75,7 @@ function handleWeatherRequest(req, res) {
 // Constructors
 function Location(data) {
   this.search_query = data.display_name.split(',')[0].toLowerCase();
+  // this.search_query = searchQuery; //taken from the request, and we add it as parameter as well
   this.formatted_query = data.display_name;
   this.latitude = data.lat;
   this.longitude = data.lon;
@@ -69,5 +89,8 @@ function Weather(data) {
 //////
 app.use('*', (req, res) => {
   res.send('City Explorer!');
+  // res.status(500).send('Sorry, something went wrong');
+  // or
+  // errorNotFound();
 });
 app.listen(PORT, () => console.log(`Listening to Port ${PORT}`));
