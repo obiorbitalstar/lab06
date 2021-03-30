@@ -192,5 +192,7 @@ client.connect().then(() => {
     console.log('connected to db', client.connectionParameters.database); //show what database we are connected to
     console.log(`Listening to Port ${PORT}`);
   });
+}).catch(error => {
+  console.log('error', error);
 });
 
