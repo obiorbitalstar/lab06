@@ -6,28 +6,20 @@ require('dotenv').config();
 const express = require('express');
 const superagent = require('superagent');
 const cors = require('cors');
-// const { response } = require('express');
+
+// Global Variables
 let searchQuery = '';
 let latitude = '';
 let longitude = '';
 
 // Setup
 const PORT = process.env.PORT || 3001;
+// if the APIs are not working, delete any whitespaces in the .env file
 const GEO_CODE_API_KEY = process.env.GEO_CODE_API_KEY;
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const PARKS_API_KEY = process.env.PARKS_API_KEY;
 const app = express();
 app.use(cors());
-
-// Global object
-const error = {
-  status: 500,
-  responseText: 'Sorry, something went wrong'
-};
-
-
-
-
 
 // Endpoints
 app.get('/location', handleLocationRequest);
@@ -35,11 +27,12 @@ app.get('/weather', handleWeatherRequest);
 app.get('/parks', handleParksRequest);
 app.use('*', handleErrorNotFound);
 
+// Handle Functions
 function handleLocationRequest(req, res) {
   searchQuery = req.query.city;
 
   const url = `https://us1.locationiq.com/v1/search.php?key=${GEO_CODE_API_KEY}&city=${searchQuery}&format=json`;
-  //or
+  // OR
   // const url = 'url as string';
   // const queryParam = {
   //   key: GEO_CODE_API_KEY,
@@ -63,34 +56,9 @@ function handleLocationRequest(req, res) {
     console.log('error', error);
     res.status(500).send('something went wrong');
   });
-
-  // if (!searchQuery) {
-  //   res.status(500).send('Sorry, something went wrong');
-  // }
-
-  // throw new Error('I didn't find any cities');
-
-  // const locationsRawData = require('./data/location.json');
-  // const locationsData = new Location(locationsRawData[0]);
-  // if (searchQuery === locationsData.search_query) {
-  //   res.send(locationsData);
-  // } else {
-  //   res.send(error);
-  // }
-
-  // try {
-  //   put above code here
-  // } catch (error) {
-  //   console.log(error);
-  //   res.status(500).send('error');
-  // }
-
-
 }
 
 function handleWeatherRequest(req, res) {
-  // const searchQuery = req.query.search_query.city;
-  // console.log(searchQuery);
   // const url = `https://api.weatherbit.io/v2.0/forecast/daily?city=${searchQuery}&key=${WEATHER_API_KEY}`;
   const url = `https://api.weatherbit.io/v2.0/forecast/daily?lat=${latitude}&lon=${longitude}&key=${WEATHER_API_KEY}`;
 
@@ -112,18 +80,6 @@ function handleWeatherRequest(req, res) {
     console.log('error', error);
     res.status(500).send('something went wrong');
   });
-
-  // if (searchQuery === 'lynnwood') {
-  //   const weatherRawData = require('./data/weather.json');
-  //   const weatherData = [];
-
-  //   weatherRawData.data.map(weather => {
-  //     weatherData.push(new Weather(weather));
-  //   });
-  //   res.send(weatherData);
-  // } else {
-  //   res.send(error);
-  // }
 }
 
 function handleParksRequest(req, res) {
@@ -145,15 +101,12 @@ function handleParksRequest(req, res) {
     console.log('error', error);
     res.status(500).send('something went wrong');
   });
-
-
 }
 
 
 
 // Constructors
 function Location(searchQuery, data) {
-  // this.search_query = data.display_name.split(',')[0].toLowerCase();
   this.search_query = searchQuery; //taken from the request, and we add it as parameter as well
   this.formatted_query = data.display_name;
   this.latitude = data.lat;
@@ -177,9 +130,6 @@ function Park(data) {
 function handleErrorNotFound(req, res) {
   res.status(404).send('Sorry, something went wrong');
 }
-// app.use('*', (req, res) => {
-//   res.send('City Explorer!');
-// });
 
 app.listen(PORT, () => console.log(`Listening to Port ${PORT}`));
 
