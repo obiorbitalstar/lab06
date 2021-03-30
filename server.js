@@ -59,6 +59,14 @@ function handleLocationRequest(req, res) {
 }
 
 function handleWeatherRequest(req, res) {
+
+  /////instead of global searchQuery and lat and lon
+  // let searchQuery = req.query.city OR req.query.search_query;
+  // let lat = req.query.latitude; //can be found found in Inspect Element -> Network -> Headers
+  // let lon = req.query.longitude;
+  // OR
+  // const { latitude, longitude } = req.query; // will make two variables similar to above // called destructuring assignment
+
   // const url = `https://api.weatherbit.io/v2.0/forecast/daily?city=${searchQuery}&key=${WEATHER_API_KEY}`;
   const url = `https://api.weatherbit.io/v2.0/forecast/daily?lat=${latitude}&lon=${longitude}&key=${WEATHER_API_KEY}`;
 
@@ -69,11 +77,15 @@ function handleWeatherRequest(req, res) {
 
   superagent.get(url).then(resData => {
     // console.log(resData.body); //then we target with index if needed
-    const weatherData = [];
 
+    const weatherData = [];
     resData.body.data.map(weather => {
       weatherData.push(new Weather(weather));
     });
+    /////// Correct way for .map()
+    // const weatherData = resData.body.data.map(weather => {
+    //   return new Weather(weather);
+    // })
 
     res.status(200).send(weatherData);
   }).catch((error) => {
@@ -121,7 +133,7 @@ function Weather(data) {
 function Park(data) {
   this.name = data.fullName;
   this.address = `${data.addresses[0].line1}, ${data.addresses[0].city}, ${data.addresses[0].stateCode} ${data.addresses[0].postalCode}`;
-  this.fee = data.entranceFees[0].cost;
+  this.fee = data.entranceFees[0].cost || '0.00';
   this.description = data.description;
   this.url = data.url;
 }
