@@ -38,15 +38,16 @@ const client = new pg.Client(DATABASE_URL);
 app.get('/location', handleLocationRequest);
 app.get('/weather', handleWeatherRequest);
 app.get('/parks', handleParksRequest);
-app.get('/add', handleAddUsers);
-app.get('/users', selectUsers);
+// app.get('/add', handleAddCity);
+// app.get('/users', selectUsers);
 app.use('*', handleErrorNotFound);
 
 // Handle Functions
-function handleAddUsers(req, res) {
-  const {first_name, last_name} = req.query;
-  console.log(first_name);
-  console.log(last_name);
+function handleAddCity(req, res) {
+  const search_query = req.query.city;
+  console.log(search_query);
+
+  
 
   // const sqlQuery = `INSERT INTO users(first_name, last_name) VALUES(${first_name}, ${last_name})`;
 
@@ -78,7 +79,6 @@ function selectUsers (req, res) {
 
 function handleLocationRequest(req, res) {
   searchQuery = req.query.city;
-
   const url = `https://us1.locationiq.com/v1/search.php?key=${GEO_CODE_API_KEY}&city=${searchQuery}&format=json`;
   // OR
   // const url = 'url as string';
@@ -93,17 +93,38 @@ function handleLocationRequest(req, res) {
     res.status(404).send('no search query was provided');
   }
 
-  superagent.get(url).then(resData => {
-    // console.log(resData.body[0]); //then we target with index if needed
-    const location = new Location(searchQuery, resData.body[0]);
-    latitude = location.latitude;
-    longitude = location.longitude;
-    // console.log(location);
-    res.status(200).send(location);
-  }).catch((error) => {
+  const sqlQuery = `SELECT * FROM cities`;
+  client.query(sqlQuery).then(result => {
+    // console.log(result.rows[0].search_query);
+    let sqlCheckBoolean = 0;
+    result.rows.forEach(entry => {
+      if (entry.search_query === searchQuery) {
+        sqlCheckBoolean = 1;
+        console.log(sqlCheckBoolean);
+        // res.status(200).send(result.rows);
+        res.status(200).send(entry);
+      }
+    });
+    if (sqlCheckBoolean) {
+      console.log(sqlCheckBoolean);
+    } else {
+      superagent.get(url).then(resData => {
+        // console.log(resData.body[0]); //then we target with index if needed
+        const location = new Location(searchQuery, resData.body[0]);
+        latitude = location.latitude;
+        longitude = location.longitude;
+        // console.log(location);
+        res.status(200).send(location);
+      }).catch((error) => {
+        console.log('error', error);
+        res.status(500).send('something went wrong');
+      });
+    }
+  }).catch(error => {
     console.log('error', error);
-    res.status(500).send('something went wrong');
+    res.status(500).send('internal server error');
   });
+
 }
 
 function handleWeatherRequest(req, res) {
