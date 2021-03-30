@@ -193,6 +193,6 @@ client.connect().then(() => {
     console.log(`Listening to Port ${PORT}`);
   });
 }).catch(error => {
-  console.log('ERROR', error);
+  console.log('error', error);
 });
 
