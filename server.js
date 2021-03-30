@@ -17,9 +17,9 @@ const cors = require('cors');
 
 
 // Global Variables
-let searchQuery = '';
-let latitude = '';
-let longitude = '';
+// let searchQuery = '';
+// let latitude = '';
+// let longitude = '';
 
 // Setup
 const PORT = process.env.PORT || 3001;
@@ -38,47 +38,12 @@ const client = new pg.Client(DATABASE_URL);
 app.get('/location', handleLocationRequest);
 app.get('/weather', handleWeatherRequest);
 app.get('/parks', handleParksRequest);
-app.get('/add', handleAddUsers);
-app.get('/users', selectUsers);
 app.use('*', handleErrorNotFound);
 
 // Handle Functions
-function handleAddUsers(req, res) {
-  const {first_name, last_name} = req.query;
-  console.log(first_name);
-  console.log(last_name);
-
-  // const sqlQuery = `INSERT INTO users(first_name, last_name) VALUES(${first_name}, ${last_name})`;
-
-  const safeValues = [first_name, last_name, 123, true, 'full-stack dev'];
-  const sqlQuery = `INSERT INTO users(first_name, last_name, ssn, ninja_status, biography) VALUES( $1, $2, $3, $4, $5 )`;
-  // add user to db
-  client.query(sqlQuery, safeValues).then(result => {
-    res.status(200).json(result); //json instead of send to send it as json
-  }).catch(error => {
-    console.log(error);
-    res.status(500).send('internal server error');
-  });
-}
-
-function selectUsers (req, res) {
-  const sqlQuery = `SELECT * FROM users`;
-  // const sqlQuery = `SELECT * FROM users WHERE first_name=$1`; //example for safeValues condition on sql statement
-
-  client.query(sqlQuery).then(result => {
-    res.status(200).json(result.rows);
-  }).catch(error => {
-    console.log('error', error);
-    res.status(500).send('internal server error');
-  });
-}
-
-
-
 
 function handleLocationRequest(req, res) {
-  searchQuery = req.query.city;
-
+  const searchQuery = req.query.city;
   const url = `https://us1.locationiq.com/v1/search.php?key=${GEO_CODE_API_KEY}&city=${searchQuery}&format=json`;
   // OR
   // const url = 'url as string';
@@ -93,17 +58,47 @@ function handleLocationRequest(req, res) {
     res.status(404).send('no search query was provided');
   }
 
-  superagent.get(url).then(resData => {
-    // console.log(resData.body[0]); //then we target with index if needed
-    const location = new Location(searchQuery, resData.body[0]);
-    latitude = location.latitude;
-    longitude = location.longitude;
-    // console.log(location);
-    res.status(200).send(location);
-  }).catch((error) => {
+  const sqlQuery = `SELECT * FROM cities`;
+  client.query(sqlQuery).then(result => {
+    // console.log(result.rows[0].search_query);
+    let sqlCheck = false;
+    result.rows.forEach(entry => {
+      if (entry.search_query === searchQuery) {
+        sqlCheck = true;
+        console.log('from db');
+        res.status(200).send(entry);
+      }
+    });
+    if (!sqlCheck) {
+      console.log('new entry');
+      superagent.get(url).then(resData => {
+        // console.log(resData.body[0]); //then we target with index if needed
+        const location = new Location(searchQuery, resData.body[0]);
+        // latitude = location.latitude;
+        // longitude = location.longitude;
+        // console.log(location);
+
+        ////// Insert to table
+        const safeValues = Object.values(location);
+        const sqlQuery = `INSERT INTO cities(search_query, formatted_query, latitude, longitude) VALUES ($1, $2, $3, $4)`;
+        client.query(sqlQuery, safeValues).then(result => {
+          res.status(200).json(result);
+        }).catch(error => {
+          console.log('error', error);
+          res.status(500).send('internal server error');
+        });
+
+        res.status(200).send(location);
+      }).catch((error) => {
+        console.log('error', error);
+        res.status(500).send('something went wrong');
+      });
+    }
+  }).catch(error => {
     console.log('error', error);
-    res.status(500).send('something went wrong');
+    res.status(500).send('internal server error');
   });
+
 }
 
 function handleWeatherRequest(req, res) {
@@ -113,13 +108,13 @@ function handleWeatherRequest(req, res) {
   // let lat = req.query.latitude; //can be found found in Inspect Element -> Network -> Headers
   // let lon = req.query.longitude;
   // OR
-  // const { latitude, longitude } = req.query; // will make two variables similar to above // called destructuring assignment
+  const { search_query, latitude, longitude } = req.query; // will make two variables similar to above // called destructuring assignment
 
   // const url = `https://api.weatherbit.io/v2.0/forecast/daily?city=${searchQuery}&key=${WEATHER_API_KEY}`;
   const url = `https://api.weatherbit.io/v2.0/forecast/daily?lat=${latitude}&lon=${longitude}&key=${WEATHER_API_KEY}`;
 
 
-  if (!searchQuery) { //for empty request
+  if (!search_query) { //for empty request
     res.status(404).send('no search query was provided');
   }
 
@@ -143,6 +138,7 @@ function handleWeatherRequest(req, res) {
 }
 
 function handleParksRequest(req, res) {
+  const searchQuery = req.query.search_query;
   const url = `https://developer.nps.gov/api/v1/parks?limit=10&q=${searchQuery}&api_key=${PARKS_API_KEY}`;
 
   if (!searchQuery) { //for empty request
@@ -155,7 +151,7 @@ function handleParksRequest(req, res) {
     resData.body.data.map(park => {
       parksData.push(new Park(park));
     });
-    console.log(parksData);
+    // console.log(parksData);
     res.status(200).send(parksData);
   }).catch((error) => {
     console.log('error', error);
