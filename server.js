@@ -4,8 +4,17 @@ require('dotenv').config();
 
 // Dependencies
 const express = require('express');
+const pg = require('pg');
 const superagent = require('superagent');
 const cors = require('cors');
+
+///
+// install pg package
+// setup url for database connections in .env
+// connect the server with postgresql
+//create endpoint that will take the users info and create a new user in the DB
+//create an endpoint for retrieving all the user info
+
 
 // Global Variables
 let searchQuery = '';
@@ -15,19 +24,58 @@ let longitude = '';
 // Setup
 const PORT = process.env.PORT || 3001;
 // if the APIs are not working, delete any whitespaces in the .env file
+const DATABASE_URL = process.env.DATABASE_URL;
 const GEO_CODE_API_KEY = process.env.GEO_CODE_API_KEY;
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const PARKS_API_KEY = process.env.PARKS_API_KEY;
 const app = express();
 app.use(cors());
 
+///// database connection setup
+const client = new pg.Client(DATABASE_URL);
+
 // Endpoints
 app.get('/location', handleLocationRequest);
 app.get('/weather', handleWeatherRequest);
 app.get('/parks', handleParksRequest);
+app.get('/add', handleAddUsers);
+app.get('/users', selectUsers);
 app.use('*', handleErrorNotFound);
 
 // Handle Functions
+function handleAddUsers(req, res) {
+  const {first_name, last_name} = req.query;
+  console.log(first_name);
+  console.log(last_name);
+
+  // const sqlQuery = `INSERT INTO users(first_name, last_name) VALUES(${first_name}, ${last_name})`;
+
+  const safeValues = [first_name, last_name, 123, true, 'full-stack dev'];
+  const sqlQuery = `INSERT INTO users(first_name, last_name, ssn, ninja_status, biography) VALUES( $1, $2, $3, $4, $5 )`;
+  // add user to db
+  client.query(sqlQuery, safeValues).then(result => {
+    res.status(200).json(result); //json instead of send to send it as json
+  }).catch(error => {
+    console.log(error);
+    res.status(500).send('internal server error');
+  });
+}
+
+function selectUsers (req, res) {
+  const sqlQuery = `SELECT * FROM users`;
+  // const sqlQuery = `SELECT * FROM users WHERE first_name=$1`; //example for safeValues condition on sql statement
+
+  client.query(sqlQuery).then(result => {
+    res.status(200).json(result.rows);
+  }).catch(error => {
+    console.log('error', error);
+    res.status(500).send('internal server error');
+  });
+}
+
+
+
+
 function handleLocationRequest(req, res) {
   searchQuery = req.query.city;
 
@@ -143,5 +191,10 @@ function handleErrorNotFound(req, res) {
   res.status(404).send('Sorry, something went wrong');
 }
 
-app.listen(PORT, () => console.log(`Listening to Port ${PORT}`));
+client.connect().then(() => {
+  app.listen(PORT, () => {
+    console.log('connected to db', client.connectionParameters.database); //show what database we are connected to
+    console.log(`Listening to Port ${PORT}`);
+  });
+});
 
